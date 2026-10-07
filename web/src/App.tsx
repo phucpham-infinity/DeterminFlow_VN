@@ -15,6 +15,7 @@ import { DesktopUpdateNotice } from "./desktop-updater/DesktopUpdateNotice";
 import { useNavigationSettings } from "./hooks/useNavigationSettings";
 import FirstRunOnboarding from "./components/onboarding/FirstRunOnboarding";
 import { AccountControl } from "./components/AccountControl";
+import { useI18n } from "./i18n";
 
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -41,19 +42,19 @@ interface TabConfig {
 const CORE_ACTIVE_TAB_CLASS = "data-[state=active]:bg-primary/15 data-[state=active]:text-primary";
 
 const CORE_TAB_METADATA: Record<CoreTabId, Omit<TabConfig, "value">> = {
-  chat: { icon: MessageSquare, label: "对话", activeClass: CORE_ACTIVE_TAB_CLASS },
-  dashboard: { icon: LayoutDashboard, label: "看板", activeClass: CORE_ACTIVE_TAB_CLASS },
-  graph: { icon: GitBranch, label: "图谱", activeClass: CORE_ACTIVE_TAB_CLASS },
-  roundtable: { icon: Users, label: "圆桌", activeClass: CORE_ACTIVE_TAB_CLASS },
-  orchestration: { icon: Layers, label: "编排", activeClass: CORE_ACTIVE_TAB_CLASS },
-  workflow: { icon: Workflow, label: "工作流", activeClass: CORE_ACTIVE_TAB_CLASS },
-  cron: { icon: Clock, label: "定时", activeClass: CORE_ACTIVE_TAB_CLASS },
-  marketplace: { icon: Store, label: "资源广场", activeClass: CORE_ACTIVE_TAB_CLASS },
-  skills: { icon: BookOpen, label: "Skills", activeClass: CORE_ACTIVE_TAB_CLASS },
-  rules: { icon: BookOpen, label: "Rules", activeClass: CORE_ACTIVE_TAB_CLASS },
-  "system-prompt": { icon: FileText, label: "系统提示词", activeClass: CORE_ACTIVE_TAB_CLASS },
-  settings: { icon: Settings, label: "配置", activeClass: CORE_ACTIVE_TAB_CLASS },
-  extensions: { icon: Boxes, label: "插件", activeClass: CORE_ACTIVE_TAB_CLASS },
+  chat: { icon: MessageSquare, label: "nav.chat", activeClass: CORE_ACTIVE_TAB_CLASS },
+  dashboard: { icon: LayoutDashboard, label: "nav.dashboard", activeClass: CORE_ACTIVE_TAB_CLASS },
+  graph: { icon: GitBranch, label: "nav.graph", activeClass: CORE_ACTIVE_TAB_CLASS },
+  roundtable: { icon: Users, label: "nav.roundtable", activeClass: CORE_ACTIVE_TAB_CLASS },
+  orchestration: { icon: Layers, label: "nav.orchestration", activeClass: CORE_ACTIVE_TAB_CLASS },
+  workflow: { icon: Workflow, label: "nav.workflow", activeClass: CORE_ACTIVE_TAB_CLASS },
+  cron: { icon: Clock, label: "nav.cron", activeClass: CORE_ACTIVE_TAB_CLASS },
+  marketplace: { icon: Store, label: "nav.marketplace", activeClass: CORE_ACTIVE_TAB_CLASS },
+  skills: { icon: BookOpen, label: "nav.skills", activeClass: CORE_ACTIVE_TAB_CLASS },
+  rules: { icon: BookOpen, label: "nav.rules", activeClass: CORE_ACTIVE_TAB_CLASS },
+  "system-prompt": { icon: FileText, label: "nav.systemPrompt", activeClass: CORE_ACTIVE_TAB_CLASS },
+  settings: { icon: Settings, label: "nav.settings", activeClass: CORE_ACTIVE_TAB_CLASS },
+  extensions: { icon: Boxes, label: "nav.extensions", activeClass: CORE_ACTIVE_TAB_CLASS },
 };
 
 const CORE_TAB_CONFIG: TabConfig[] = CORE_TAB_IDS.map((value) => ({
@@ -80,6 +81,7 @@ const CORE_PAGE_MAP: Record<CoreTabId, React.ComponentType> = {
 
 function GlobalConnectionStatus() {
   const { connected } = useGlobalEvents();
+  const { t } = useI18n();
 
   return (
     <div className="flex shrink-0 items-center gap-3" aria-live="polite">
@@ -90,10 +92,10 @@ function GlobalConnectionStatus() {
           <WifiOff size={14} className="text-destructive" aria-hidden="true" />
         )}
         <span className={`hidden xl:inline ${connected ? "text-success" : "text-destructive"}`}>
-          {connected ? "已连接" : "断开"}
+          {connected ? t("status.connected") : t("status.disconnected")}
         </span>
         <span className="sr-only">
-          {connected ? "WebSocket 已连接" : "WebSocket 连接断开"}
+          {connected ? t("status.websocketConnected") : t("status.websocketDisconnected")}
         </span>
       </div>
     </div>
@@ -101,11 +103,12 @@ function GlobalConnectionStatus() {
 }
 
 function PageLoadingFallback() {
+  const { t } = useI18n();
   return (
     <div className="flex h-full min-h-0 items-center justify-center" role="status" aria-live="polite">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        <span>正在加载页面...</span>
+        <span>{t("loading.page")}</span>
       </div>
     </div>
   );
@@ -113,6 +116,7 @@ function PageLoadingFallback() {
 
 function App() {
   const extensions = useExtensions();
+  const { t } = useI18n();
   const showSystemPromptTab = useNavigationSettings();
   const [marketplaceAvailable, setMarketplaceAvailable] = useState(false);
   const [requestedTab, setRequestedTab] = useUrlParam("tab");
@@ -134,14 +138,14 @@ function App() {
     ...CORE_TAB_CONFIG.filter((tab) => (
       (tab.value !== "system-prompt" || showSystemPromptTab)
       && (tab.value !== "marketplace" || marketplaceAvailable)
-    )),
+    )).map((tab) => ({ ...tab, label: t(tab.label as Parameters<typeof t>[0]) })),
     ...extensionPages.map((page) => ({
       value: page.id,
       icon: page.icon,
       label: page.label,
       activeClass: CORE_ACTIVE_TAB_CLASS,
     })),
-  ], [extensionPages, marketplaceAvailable, showSystemPromptTab]);
+  ], [extensionPages, marketplaceAvailable, showSystemPromptTab, t]);
   const activeTab = tabs.some((tab) => tab.value === requestedTab)
     ? requestedTab!
     : "chat";
